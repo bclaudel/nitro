@@ -29,13 +29,21 @@ fn main() -> Result<()> {
         Commands::Connect {
             dir,
             no_color: _,
+            no_fail,
             name_tokens,
         } => {
             let opts = ConnectOptions {
                 tokens: name_tokens,
                 dir,
             };
-            connect::run_connect(&sh, opts)
+            match connect::run_connect(&sh, opts) {
+                Ok(()) => Ok(()),
+                Err(e) if no_fail => {
+                    eprintln!("{e}");
+                    Ok(())
+                }
+                Err(e) => Err(e),
+            }
         }
     }
 }

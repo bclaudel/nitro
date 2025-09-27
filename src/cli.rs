@@ -19,7 +19,7 @@ pub enum Commands {
         /// Presence without value means all results
         #[arg(short = 'z', long = "zoxide", num_args = 0..=1, value_parser = clap::value_parser!(usize))]
         zoxide: Option<Option<usize>>,
-        /// Use fancy icons ( for tmux,  for zoxide) instead of ASCII [t]/[z]
+        /// Use fancy icons (  for tmux,   for zoxide) instead of ASCII [t]/[z]
         #[arg(long = "icons", action = ArgAction::SetTrue)]
         icons: bool,
         /// Disable colored output (overrides NO_COLOR)
@@ -35,6 +35,9 @@ pub enum Commands {
         /// Disable colored output (overrides NO_COLOR)
         #[arg(long = "no-color", action = ArgAction::SetTrue)]
         no_color: bool,
+        /// Do not fail: exit 0 even if an error occurs
+        #[arg(long = "no-fail", action = ArgAction::SetTrue)]
+        no_fail: bool,
         /// Full line tokens (supports fzf piping without quotes)
         #[arg(name = "name", trailing_var_arg = true, num_args = 1..)]
         name_tokens: Vec<String>,
@@ -95,10 +98,12 @@ mod tests {
                 dir,
                 name_tokens,
                 no_color,
+                no_fail,
             } => {
                 assert_eq!(dir.as_deref(), Some(std::path::Path::new("/tmp")));
                 assert_eq!(name_tokens, vec!["web".to_string(), "prod".to_string()]);
                 assert!(!no_color);
+                assert!(!no_fail);
             }
             _ => panic!("expected connect"),
         }
@@ -109,10 +114,21 @@ mod tests {
             Commands::Connect {
                 no_color,
                 name_tokens,
+                no_fail,
                 ..
             } => {
                 assert!(no_color);
+                assert!(!no_fail);
                 assert_eq!(name_tokens, vec!["api".to_string()]);
+            }
+            _ => panic!(),
+        }
+
+        // no-fail flag
+        let c = Cli::parse_from(["nitro", "connect", "--no-fail", "api"]);
+        match c.command {
+            Commands::Connect { no_fail, .. } => {
+                assert!(no_fail);
             }
             _ => panic!(),
         }
