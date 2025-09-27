@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Pre-commit: enforce formatting and clippy lints
+# Requires cargo aliases defined in .cargo/config.toml:
+#   lint = "clippy --all-targets -- -D warnings"
+#   fmtcheck = "fmt -- --check"
+
+echo "[pre-commit] Running cargo fmtcheck..."
+if ! cargo fmtcheck; then
+  echo "[pre-commit] Formatting check failed. Run: cargo fmt" >&2
+  exit 1
+fi
+
+echo "[pre-commit] Running cargo lint..."
+if ! cargo lint; then
+  echo "[pre-commit] Lint failed. Fix clippy warnings (or use cargo clippy --fix selectively)." >&2
+  exit 1
+fi
+
+echo "[pre-commit] OK"
