@@ -49,6 +49,9 @@ mod tests {
             fn run_status(&self, _p: &str, _a: &[&str]) -> Result<bool> {
                 Ok(true)
             }
+            fn run_tty(&self, _p: &str, _a: &[&str]) -> Result<()> {
+                Ok(())
+            }
             fn env_var(&self, _k: &str) -> Option<String> {
                 None
             }
@@ -70,6 +73,9 @@ mod tests {
             fn run_status(&self, _p: &str, _a: &[&str]) -> Result<bool> {
                 Ok(true)
             }
+            fn run_tty(&self, _p: &str, _a: &[&str]) -> Result<()> {
+                Ok(())
+            }
             fn env_var(&self, _k: &str) -> Option<String> {
                 None
             }
@@ -81,6 +87,9 @@ mod tests {
             }
             fn run_status(&self, _p: &str, _a: &[&str]) -> Result<bool> {
                 Ok(true)
+            }
+            fn run_tty(&self, _p: &str, _a: &[&str]) -> Result<()> {
+                Ok(())
             }
             fn env_var(&self, _k: &str) -> Option<String> {
                 None

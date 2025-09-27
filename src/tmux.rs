@@ -29,7 +29,8 @@ pub fn attach_or_switch<S: Shell>(sh: &S, name: &str) -> Result<()> {
     if sh.env_var("TMUX").is_some() {
         let _ = sh.run("tmux", &["switch-client", "-t", name])?;
     } else {
-        let _ = sh.run("tmux", &["attach", "-t", name])?;
+        // Attach must run with a TTY; inherit stdio so tmux sees a terminal
+        sh.run_tty("tmux", &["attach", "-t", name])?;
     }
     Ok(())
 }
@@ -70,6 +71,9 @@ mod tests {
                 .get(&(program.into(), args.iter().map(|s| s.to_string()).collect()))
                 .unwrap_or(&true))
         }
+        fn run_tty(&self, _program: &str, _args: &[&str]) -> Result<()> {
+            Ok(())
+        }
         fn env_var(&self, key: &str) -> Option<String> {
             self.env.get(key).cloned()
         }
@@ -84,6 +88,9 @@ mod tests {
             }
             fn run_status(&self, _p: &str, _a: &[&str]) -> Result<bool> {
                 Ok(true)
+            }
+            fn run_tty(&self, _p: &str, _a: &[&str]) -> Result<()> {
+                Ok(())
             }
             fn env_var(&self, _k: &str) -> Option<String> {
                 None

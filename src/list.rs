@@ -113,6 +113,9 @@ mod tests {
         fn run_status(&self, _program: &str, _args: &[&str]) -> Result<bool> {
             Ok(true)
         }
+        fn run_tty(&self, _program: &str, _args: &[&str]) -> Result<()> {
+            Ok(())
+        }
         fn env_var(&self, key: &str) -> Option<String> {
             self.env.get(key).cloned()
         }

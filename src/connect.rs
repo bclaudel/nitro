@@ -161,6 +161,9 @@ mod tests {
                 .get(&(program.into(), args.iter().map(|s| s.to_string()).collect()))
                 .unwrap_or(&true))
         }
+        fn run_tty(&self, _program: &str, _args: &[&str]) -> Result<()> {
+            Ok(())
+        }
         fn env_var(&self, key: &str) -> Option<String> {
             self.env.get(key).cloned()
         }

@@ -4,6 +4,8 @@ use std::process::{Command, Stdio};
 pub trait Shell {
     fn run(&self, program: &str, args: &[&str]) -> Result<String>;
     fn run_status(&self, program: &str, args: &[&str]) -> Result<bool>;
+    /// Run a command that requires a real TTY (stdin/stdout/stderr inherited)
+    fn run_tty(&self, program: &str, args: &[&str]) -> Result<()>;
     fn env_var(&self, key: &str) -> Option<String>;
 }
 
@@ -33,6 +35,20 @@ impl Shell for RealShell {
             .status()
             .with_context(|| format!("failed to spawn {}", program))?;
         Ok(status.success())
+    }
+
+    fn run_tty(&self, program: &str, args: &[&str]) -> Result<()> {
+        let status = Command::new(program)
+            .args(args)
+            .stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .status()
+            .with_context(|| format!("failed to spawn {}", program))?;
+        if !status.success() {
+            anyhow::bail!("{} {:?} failed with status {}", program, args, status);
+        }
+        Ok(())
     }
 
     fn env_var(&self, key: &str) -> Option<String> {
