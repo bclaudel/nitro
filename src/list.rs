@@ -37,6 +37,13 @@ pub fn build_list_lines<S: Shell>(sh: &S, opts: &ListOptions) -> Result<Vec<Stri
     if opts.include_tmux
         && let Ok(mut sessions) = tmux::list_sessions(sh)
     {
+        // Promote active session to the front if present
+        if let Some(active) = tmux::active_session(sh)
+            && let Some(i) = sessions.iter().position(|s| s == &active)
+        {
+            let s = sessions.remove(i);
+            sessions.insert(0, s);
+        }
         for s in sessions.drain(..) {
             if opts.icons {
                 let icon = colorize(want_color, COLOR_MAGENTA, ICON_TMUX);
@@ -125,6 +132,7 @@ mod tests {
     fn list_tmux_and_zoxide_ascii_and_limit() -> Result<()> {
         let sh = MockShell::default()
             .with("tmux", &["list-sessions", "-F", "#S"], "b\na\n")
+            .with("tmux", &["display-message", "-p", "-F", "#S"], "\n")
             .with(
                 "zoxide",
                 &["query", "-l"],
@@ -175,6 +183,7 @@ mod tests {
     fn list_icons_with_color() -> Result<()> {
         let sh = MockShell::default()
             .with("tmux", &["list-sessions", "-F", "#S"], "x\n")
+            .with("tmux", &["display-message", "-p", "-F", "#S"], "x\n")
             .with("zoxide", &["query", "-l"], "/a/b\n");
         let lines = build_list_lines(&sh, &opts_icons(false))?;
         assert_eq!(lines.len(), 2);
@@ -189,9 +198,20 @@ mod tests {
     fn list_graceful_empty() -> Result<()> {
         let sh = MockShell::default()
             .with("tmux", &["list-sessions", "-F", "#S"], "\n\n")
+            .with("tmux", &["display-message", "-p", "-F", "#S"], "\n")
             .with("zoxide", &["query", "-l"], "\n");
         let lines = build_list_lines(&sh, &opts_ascii(true))?;
         assert!(lines.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn list_promotes_active_tmux_first() -> Result<()> {
+        let sh = MockShell::default()
+            .with("tmux", &["list-sessions", "-F", "#S"], "b\na\n")
+            .with("tmux", &["display-message", "-p", "-F", "#S"], "b\n");
+        let lines = build_list_lines(&sh, &opts_ascii(true))?;
+        assert_eq!(lines[..2], [String::from("[t] b"), String::from("[t] a")]);
         Ok(())
     }
 }

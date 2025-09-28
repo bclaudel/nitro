@@ -14,6 +14,46 @@ pub fn list_sessions<S: Shell>(sh: &S) -> Result<Vec<String>> {
     Ok(items)
 }
 
+/// Best-effort detection of the currently active/attached session name.
+/// Returns None if not determinable.
+pub fn active_session<S: Shell>(sh: &S) -> Option<String> {
+    // If inside tmux, display-message yields the current session.
+    let disp = sh
+        .run("tmux", &["display-message", "-p", "-F", "#S"])
+        .unwrap_or_default();
+    let name = disp.lines().next().map(|s| s.trim()).unwrap_or("");
+    if !name.is_empty() {
+        return Some(name.to_string());
+    }
+
+    // Fallback: scan sessions for an attached one.
+    let out = sh
+        .run(
+            "tmux",
+            &["list-sessions", "-F", "#{?session_attached,1,0}\t#S"],
+        )
+        .unwrap_or_default();
+    let mut attached: Vec<String> = out
+        .lines()
+        .filter_map(|line| {
+            let mut parts = line.splitn(2, '\t');
+            match (parts.next(), parts.next()) {
+                (Some("1"), Some(n)) => {
+                    let n = n.trim();
+                    if n.is_empty() {
+                        None
+                    } else {
+                        Some(n.to_string())
+                    }
+                }
+                _ => None,
+            }
+        })
+        .collect();
+    attached.sort();
+    attached.into_iter().next()
+}
+
 pub fn has_session<S: Shell>(sh: &S, name: &str) -> Result<bool> {
     // tmux has-session returns non-zero if not exists
     let ok = sh.run_status("tmux", &["has-session", "-t", name])?;
