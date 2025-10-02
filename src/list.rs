@@ -5,10 +5,8 @@ use anyhow::Result;
 
 const ICON_TMUX: &str = "";
 const ICON_ZOX: &str = "";
-const COLOR_MAGENTA: &str = "\u{001b}[35m"; // tmux (icons)
-const COLOR_BLUE: &str = "\u{001b}[34m"; // zoxide (icons)
-const COLOR_ASCII_T: &str = "\u{001b}[35m"; // tmux [t]
-const COLOR_ASCII_Z: &str = "\u{001b}[34m"; // zoxide [z]
+const COLOR_TMUX: &str = "\u{001b}[35m";
+const COLOR_ZOX: &str = "\u{001b}[34m";
 const COLOR_RESET: &str = "\u{001b}[0m";
 
 pub struct ListOptions {
@@ -46,10 +44,10 @@ pub fn build_list_lines<S: Shell>(sh: &S, opts: &ListOptions) -> Result<Vec<Stri
         }
         for s in sessions.drain(..) {
             if opts.icons {
-                let icon = colorize(want_color, COLOR_MAGENTA, ICON_TMUX);
-                lines.push(format!("{}  {}", icon, s));
+                let icon = colorize(want_color, COLOR_TMUX, ICON_TMUX);
+                lines.push(format!("{} {}", icon, s));
             } else {
-                let prefix = colorize(want_color, COLOR_ASCII_T, "[t]");
+                let prefix = colorize(want_color, COLOR_TMUX, "[t]");
                 lines.push(format!("{} {}", prefix, s));
             }
         }
@@ -63,10 +61,10 @@ pub fn build_list_lines<S: Shell>(sh: &S, opts: &ListOptions) -> Result<Vec<Stri
         }
         for it in items.into_iter() {
             if opts.icons {
-                let icon = colorize(want_color, COLOR_BLUE, ICON_ZOX);
-                lines.push(format!("{}  {}", icon, it.path.display()));
+                let icon = colorize(want_color, COLOR_ZOX, ICON_ZOX);
+                lines.push(format!("{} {}", icon, it.path.display()));
             } else {
-                let prefix = colorize(want_color, COLOR_ASCII_Z, "[z]");
+                let prefix = colorize(want_color, COLOR_ZOX, "[z]");
                 lines.push(format!("{} {}", prefix, it.path.display()));
             }
         }
