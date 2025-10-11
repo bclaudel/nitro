@@ -75,7 +75,7 @@ pub fn parse_connect_line(tokens: &[String]) -> ParsedLine {
     }
 }
 
-fn normalize_name(s: &str) -> String {
+pub fn normalize_name(s: &str) -> String {
     let trimmed = s.trim();
     let mut out = String::with_capacity(trimmed.len());
     let mut last_dash = false;

@@ -1,7 +1,9 @@
+use crate::connect::normalize_name;
 use crate::shell::Shell;
 use crate::tmux;
 use crate::zoxide;
 use anyhow::Result;
+use std::collections::HashSet;
 
 const ICON_TMUX: &str = "";
 const ICON_ZOX: &str = "";
@@ -32,6 +34,9 @@ pub fn build_list_lines<S: Shell>(sh: &S, opts: &ListOptions) -> Result<Vec<Stri
     // For ASCII mode: color prefixes; for icon mode: color glyphs
     let want_color = !opts.no_color;
 
+    // Track normalized tmux session names to filter zoxide duplicates
+    let mut tmux_names: HashSet<String> = HashSet::new();
+
     if opts.include_tmux
         && let Ok(mut sessions) = tmux::list_sessions(sh)
     {
@@ -43,6 +48,7 @@ pub fn build_list_lines<S: Shell>(sh: &S, opts: &ListOptions) -> Result<Vec<Stri
             sessions.insert(0, s);
         }
         for s in sessions.drain(..) {
+            tmux_names.insert(normalize_name(&s));
             if opts.icons {
                 let icon = colorize(want_color, COLOR_TMUX, ICON_TMUX);
                 lines.push(format!("{} {}", icon, s));
@@ -60,6 +66,16 @@ pub fn build_list_lines<S: Shell>(sh: &S, opts: &ListOptions) -> Result<Vec<Stri
             items.truncate(n);
         }
         for it in items.into_iter() {
+            // Derive a would-be session name from the path's basename
+            let base = it
+                .path
+                .file_name()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let z_name = normalize_name(&base);
+            if tmux_names.contains(&z_name) {
+                continue; // skip duplicates matching existing tmux sessions
+            }
             if opts.icons {
                 let icon = colorize(want_color, COLOR_ZOX, ICON_ZOX);
                 lines.push(format!("{} {}", icon, it.path.display()));
@@ -152,6 +168,25 @@ mod tests {
                 String::from("[t] b"),
                 String::from("[z] /home/u/one"),
                 String::from("[z] /home/u/two"),
+            ]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn list_filters_zoxide_duplicates_matching_tmux() -> Result<()> {
+        // tmux sessions a and b; zoxide lists dirs whose basenames are a, b, c
+        let sh = MockShell::default()
+            .with("tmux", &["list-sessions", "-F", "#S"], "b\na\n")
+            .with("tmux", &["display-message", "-p", "-F", "#S"], "\n")
+            .with("zoxide", &["query", "-l"], "/x/a\n/y/b\n/z/c\n");
+        let lines = build_list_lines(&sh, &opts_ascii(true))?;
+        assert_eq!(
+            lines,
+            vec![
+                String::from("[t] a"),
+                String::from("[t] b"),
+                String::from("[z] /z/c"),
             ]
         );
         Ok(())
